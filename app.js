@@ -14,6 +14,34 @@ admin.initializeApp({
   databaseURL: "https://rn-practice-a5618.firebaseio.com"
 });
 
+function updateOrCreateUser(userId, email, displayName, photoURL) {
+  console.log('updating or creating a firebase user');
+  const updateParams = {
+    provider: 'KAKAO',
+    displayName: displayName,
+  };
+  if (displayName) {
+    updateParams['displayName'] = displayName;
+  } else {
+    updateParams['displayName'] = email;
+  }
+  if (photoURL) {
+    updateParams['photoURL'] = photoURL;
+  }
+  console.log(updateParams);
+  return admin.auth().updateUser(userId, updateParams)
+  .catch((error) => {
+    if (error.code === 'auth/user-not-found') {
+      updateParams['uid'] = userId;
+      if (email) {
+        updateParams['email'] = email;
+      }
+      return admin.auth().createUser(updateParams);
+    }
+    throw error;
+  });
+}
+
 app.post('/kakao', async (req, res) => {
   const { accessToken } = req.body;
 
@@ -29,7 +57,7 @@ app.post('/kakao', async (req, res) => {
 
     console.log('profileResponse', profileResponse);
 
-    admin.auth().updateUser()
+    const {userId, email, displayName, photoURL} = profileResponse;
 
     const customToken = await admin.auth().createCustomToken(id, { provider: 'KAKAO' });
     console.log(customToken);
